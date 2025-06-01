@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, date
 import json
 import os
 from fpdf import FPDF
@@ -668,10 +668,8 @@ class PDFGenerator:
         pdf.add_page()
         pdf.set_font("Arial", size=12)
         
-        # Split content into lines and add to PDF
         lines = letter_content.split('\n')
         for line in lines:
-            # Handle long lines by wrapping them
             if len(line) > 80:
                 words = line.split(' ')
                 current_line = ""
@@ -686,7 +684,6 @@ class PDFGenerator:
             else:
                 pdf.cell(200, 10, txt=line, ln=True, align='L')
         
-        # Handle string or bytes output
         pdf_output = pdf.output(dest='S')
         return pdf_output.encode('latin1') if isinstance(pdf_output, str) else pdf_output
 
@@ -700,24 +697,27 @@ class UserManager:
         if os.path.exists(self.users_file):
             try:
                 with open(self.users_file, 'r') as f:
-                    content = f.read().strip()  # Read and remove whitespace
-                    if content:  # Check if content is not empty
+                    content = f.read().strip()
+                    if content:
                         self.users = json.loads(content)
                     else:
-                        self.users = {}  # Empty file, use default
+                        self.users = {}
             except (json.JSONDecodeError, IOError):
-                self.users = {}  # Invalid JSON or read error, use default
+                self.users = {}
         else:
-            self.users = {}  # File doesn't exist, use default
+            self.users = {}
     
     def save_users(self):
+        """Save users to file"""
         with open(self.users_file, 'w') as f:
             json.dump(self.users, f)
     
     def hash_password(self, password):
+        """Hash password for security"""
         return hashlib.sha256(password.encode()).hexdigest()
     
     def register_user(self, username, password, email, full_name):
+        """Register new user"""
         if username in self.users:
             return False, "Username already exists"
         self.users[username] = {
@@ -731,6 +731,7 @@ class UserManager:
         return True, "User registered successfully"
     
     def login_user(self, username, password):
+        """Login user"""
         if username not in self.users:
             return False, "Username not found"
         if self.users[username]["password"] != self.hash_password(password):
@@ -738,17 +739,31 @@ class UserManager:
         return True, ""
     
     def get_user_templates(self, username):
+        """Get user's saved templates"""
         return self.users.get(username, {}).get("templates", {})
     
     def save_user_template(self, username, template_name, template_data):
+        """Save user template, handling non-serializable objects"""
         if username in self.users:
             if "templates" not in self.users[username]:
                 self.users[username]["templates"] = {}
-            self.users[username]["templates"][template_name] = template_data
-            self.save_users()
-            return True
+            
+            # Convert non-serializable objects in template_data
+            def serialize_data(obj):
+                if isinstance(obj, date):  # Handle datetime.date
+                    return obj.isoformat()
+                return obj
+            
+            # Create a deep copy of template_data with serialized objects
+            serialized_data = json.loads(json.dumps(template_data, default=serialize_data))
+            
+            self.users[username]["templates"][template_name] = serialized_data
+            try:
+                self.save_users()
+                return True
+            except (IOError, TypeError) as e:
+                return False  # Prevent data corruption on save failure
         return False
-
 def main():
     # Initialize session state
     if "logged_in" not in st.session_state:
