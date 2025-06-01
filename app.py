@@ -686,8 +686,9 @@ class PDFGenerator:
             else:
                 pdf.cell(200, 10, txt=line, ln=True, align='L')
         
-        # Convert bytearray to bytes
-        return bytes(pdf.output(dest='S'))
+        # Handle string or bytes output
+        pdf_output = pdf.output(dest='S')
+        return pdf_output.encode('latin1') if isinstance(pdf_output, str) else pdf_output
 
 class UserManager:
     def __init__(self):
