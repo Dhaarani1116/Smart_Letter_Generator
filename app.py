@@ -696,27 +696,30 @@ class UserManager:
         self.load_users()
     
     def load_users(self):
-        """Load users from file"""
+        """Load users from file, handling empty or invalid JSON"""
         if os.path.exists(self.users_file):
-            with open(self.users_file, 'r') as f:
-                self.users = json.load(f)
+            try:
+                with open(self.users_file, 'r') as f:
+                    content = f.read().strip()  # Read and remove whitespace
+                    if content:  # Check if content is not empty
+                        self.users = json.loads(content)
+                    else:
+                        self.users = {}  # Empty file, use default
+            except (json.JSONDecodeError, IOError):
+                self.users = {}  # Invalid JSON or read error, use default
         else:
-            self.users = {}
+            self.users = {}  # File doesn't exist, use default
     
     def save_users(self):
-        """Save users to file"""
         with open(self.users_file, 'w') as f:
             json.dump(self.users, f)
     
     def hash_password(self, password):
-        """Hash password for security"""
         return hashlib.sha256(password.encode()).hexdigest()
     
     def register_user(self, username, password, email, full_name):
-        """Register new user"""
         if username in self.users:
             return False, "Username already exists"
-        
         self.users[username] = {
             "password": self.hash_password(password),
             "email": email,
@@ -728,23 +731,16 @@ class UserManager:
         return True, "User registered successfully"
     
     def login_user(self, username, password):
-        """Login user"""
         if username not in self.users:
             return False, "Username not found"
-        
         if self.users[username]["password"] != self.hash_password(password):
             return False, "Invalid password"
-        
-        return True, "Login successful"
+        return True, ""
     
     def get_user_templates(self, username):
-        """Get user's saved templates"""
-        if username in self.users:
-            return self.users[username].get("templates", {})
-        return {}
+        return self.users.get(username, {}).get("templates", {})
     
     def save_user_template(self, username, template_name, template_data):
-        """Save user template"""
         if username in self.users:
             if "templates" not in self.users[username]:
                 self.users[username]["templates"] = {}
