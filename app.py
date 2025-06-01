@@ -1,13 +1,9 @@
 import streamlit as st
-import speech_recognition as sr
-import pyttsx3
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 import os
 from fpdf import FPDF
-import base64
 import hashlib
-import re
 from typing import Dict, List, Optional
 
 # Page configuration
@@ -48,27 +44,23 @@ st.markdown("""
         cursor: pointer;
     }
     /* Improved input field styling */
-    /* Improved input field styling */
-.stTextInput input, .stTextArea textarea, .stDateInput input, .stSelectbox select {
-    background-color: #ffffff !important;  /* White background */
-    color: #000000 !important;             /* Black text */
-    border: 1px solid #cccccc !important;   /* Light gray border */
-}
-
-.stTextInput label, .stTextArea label, .stDateInput label, .stSelectbox label {
-    color: #ffffff !important;             /* White label text */
-}
-
-/* Fix radio button text color */
-.stRadio label {
-    color: #000000 !important;             /* Black text for radio buttons */
-}
-
-/* Optional: Add some padding and rounded corners */
-.stTextInput input, .stTextArea textarea, .stDateInput input, .stSelectbox select {
-    padding: 8px 12px !important;
-    border-radius: 4px !important;
-}
+    .stTextInput input, .stTextArea textarea, .stDateInput input, .stSelectbox select {
+        background-color: #ffffff !important;  /* White background */
+        color: #000000 !important;             /* Black text */
+        border: 1px solid #cccccc !important;   /* Light gray border */
+    }
+    .stTextInput label, .stTextArea label, .stDateInput label, .stSelectbox label {
+        color: #ffffff !important;             /* White label text */
+    }
+    /* Fix radio button text color */
+    .stRadio label {
+        color: #000000 !important;             /* Black text for radio buttons */
+    }
+    /* Optional: Add some padding and rounded corners */
+    .stTextInput input, .stTextArea textarea, .stDateInput input, .stSelectbox select {
+        padding: 8px 12px !important;
+        border-radius: 4px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -928,8 +920,12 @@ def main():
             with col2:
                 # Copy to clipboard
                 if st.button("Copy to Clipboard"):
-                    st.session_state.copied = True
-                    st.rerun()
+                    st.markdown(f"""
+                    <script>
+                        navigator.clipboard.writeText(`{st.session_state.generated_letter.replace("`", "\\`").replace("\n", "\\n")}`);
+                        alert("Letter copied to clipboard!");
+                    </script>
+                    """, unsafe_allow_html=True)
                     st.success("Copied to clipboard!")
             with col3:
                 # Save as template
